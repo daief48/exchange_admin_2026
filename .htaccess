@@ -1,0 +1,41 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # 1. Block direct access to sensitive system files
+    RewriteRule ^(\.env|artisan|composer\.(json|lock)|package\.json|package-lock\.json|phpunit\.xml) - [F,L,NC]
+
+    # 2. Block direct web access to internal Laravel directories
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|tests)(/.*)?$ - [F,L,NC]
+
+    # 3. Handle Authorization Header (Bearer tokens / Basic Auth)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # 4. Redirect all web requests into Laravel's public directory
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Security: Deny direct HTTP access to dotfiles (.env, .git, etc.)
+<IfModule mod_authz_core.c>
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+    <Files .env>
+        Require all denied
+    </Files>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^\.">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+    <Files .env>
+        Order allow,deny
+        Deny from all
+    </Files>
+</IfModule>
