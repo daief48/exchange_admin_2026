@@ -13,6 +13,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.4.1/dist/css/tom-select.min.css">
 
     <script>
@@ -497,6 +498,39 @@
     // Applies to every <select> in the app; the native select stays in sync
     // and keeps firing native "change" events, so existing AJAX filters,
     // conditional fields, and form submissions continue to work unchanged.
+
+    // Export any table to a real .xlsx file. Options:
+    //   strip: selector list removed from the clone (helper cells, letters…)
+    // Exports exactly what is on screen — hidden cells, recomputed totals,
+    // and filters all carry over.
+    window.exportTableToExcel = function (tableId, fileName, opts) {
+        opts = opts || {};
+        const src = document.getElementById(tableId);
+        if (!src) return;
+        if (typeof XLSX === 'undefined') {
+            console.error('SheetJS (XLSX) is not loaded — cannot export.');
+            return;
+        }
+
+        const clone = src.cloneNode(true);
+
+        // Drop helper cells / deselected columns
+        if (opts.strip) {
+            clone.querySelectorAll(opts.strip).forEach(el => el.remove());
+        }
+        // Anything hidden on screen is not part of the export
+        clone.querySelectorAll('[style*="display:none"], [style*="display: none"]').forEach(el => el.remove());
+        // Interactive controls become plain text
+        clone.querySelectorAll('input, select, button').forEach(el => el.remove());
+        // Empty placeholder rows (e.g. the letter strip after stripping)
+        clone.querySelectorAll('tr').forEach(tr => {
+            if (!tr.querySelector('td, th')) tr.remove();
+        });
+
+        const wb = XLSX.utils.table_to_book(clone, { sheet: 'Sheet1' });
+        XLSX.writeFile(wb, (fileName || 'export') + '.xlsx');
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof TomSelect === 'undefined') {
             return;

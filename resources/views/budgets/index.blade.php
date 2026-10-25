@@ -209,7 +209,10 @@
             return $s;
         };
         $headColCount = $matrixHeads->count();
-        $totalColLetter = $xlsCol($headColCount + 1); // heads start at column B; depot = A
+        // Head columns are labelled A, B, C… (the depot panel has no letter —
+        // it sits under the frozen pane, so numbering from it made every
+        // letter appear shifted one column left vs its header).
+        $totalColLetter = $xlsCol($headColCount);
     @endphp
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -219,7 +222,13 @@
                 </h3>
                 <p class="text-xs text-slate-400">Spreadsheet-style pivot — hover any cell to inspect it (Period: {{ $month }} {{ $year }})</p>
             </div>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em]">Freeze Panes: On</span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="exportTableToExcel('xlsxMatrix', 'Depot_Expense_Matrix_{{ $month }}_{{ $year }}', { strip: '.xlsx-letter, .xlsx-corner-top, .xlsx-rownum, .xlsx-col-off' })"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition" title="Export the current matrix (selected columns & totals) to Excel">
+                    <i class="fa-solid fa-file-excel"></i> Export to Excel
+                </button>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em]">Freeze Panes: On</span>
+            </div>
         </div>
 
         <!-- Formula bar -->
@@ -233,23 +242,30 @@
         <div class="overflow-auto max-h-[70vh]">
             <table class="xlsx-table" id="xlsxMatrix">
                 <thead>
-                    <!-- Spreadsheet column-letter strip -->
+                    <!-- Spreadsheet column-letter strip (depot panel is letter-less;
+                         head columns start at A so letters match their headers) -->
                     <tr>
                         <th class="xlsx-corner-top"><i class="fa-solid fa-table-cells text-[10px]"></i></th>
-                        <th class="xlsx-letter">A</th>
+                        <th class="xlsx-letter" title="Depot / Showroom (frozen)"><i class="fa-solid fa-snowflake text-[9px] text-slate-300"></i></th>
                         @foreach($matrixHeads as $h)
-                            <th class="xlsx-letter">{{ $xlsCol($loop->index + 1) }}</th>
+                            <th class="xlsx-letter">{{ $xlsCol($loop->index) }}</th>
                         @endforeach
                         <th class="xlsx-letter xlsx-letter-total">{{ $totalColLetter }}</th>
                     </tr>
                     <!-- Column headers -->
                     <tr>
+                        <th class="xlsx-head-gutter"></th>
                         <th class="xlsx-head xlsx-corner-left">
                             <span class="text-slate-700">Depot / Showroom</span>
                             <span class="block text-[9px] font-semibold text-slate-400 normal-case tracking-normal mt-0.5">{{ $month }} {{ $year }}</span>
                         </th>
                         @foreach($matrixHeads as $head)
-                            <th class="xlsx-head text-right" title="{{ $head->name }}">{{ \Illuminate\Support\Str::limit($head->name, 18) }}</th>
+                            <th class="xlsx-head text-right" title="{{ $head->name }} — uncheck to hide this column">
+                                <label class="xlsx-colcheck-label" title="Show / hide this column">
+                                    <input type="checkbox" class="xlsx-colcheck" checked data-col="{{ $loop->index + 2 }}">
+                                    <span>{{ \Illuminate\Support\Str::limit($head->name, 16) }}</span>
+                                </label>
+                            </th>
                         @endforeach
                         <th class="xlsx-head xlsx-head-total text-right">Total (BDT)</th>
                     </tr>
@@ -342,13 +358,19 @@
                 </h3>
                 <p class="text-xs text-slate-400">Ranked from highest budget consumption % to lowest (Period: {{ $month }} {{ $year }})</p>
             </div>
-            <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-xl font-semibold">
-                {{ $varianceTable->count() }} Depots Tracked
-            </span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="exportTableToExcel('varianceRankingTable', 'Depot_Variance_Ranking_{{ $month }}_{{ $year }}')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition" title="Export this ranking table to Excel">
+                    <i class="fa-solid fa-file-excel"></i> Export to Excel
+                </button>
+                <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-xl font-semibold">
+                    {{ $varianceTable->count() }} Depots Tracked
+                </span>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
+            <table class="w-full text-left border-collapse text-xs" id="varianceRankingTable">
                 <thead>
                     <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                         <th class="py-3.5 px-4 text-center">Rank</th>
@@ -508,6 +530,21 @@
         border-bottom: 2px solid #cbd5e1 !important;
     }
     .xlsx-head-total { background: #e8eefc; color: #0e3a8c; border-left: 2px solid #cbd5e1; }
+    /* Narrow gutter cell above the row-number column (keeps the header row's
+       grid slots aligned with the body rows — without it every header sits
+       one column left of its data). */
+    .xlsx-head-gutter {
+        position: sticky;
+        top: 26px;
+        left: 0;
+        z-index: 30;
+        background: #f8fafc;
+        width: 36px;
+        min-width: 36px;
+        padding: 0 !important;
+        border-right: 2px solid #cbd5e1 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
     .xlsx-corner-left {
         left: 36px;
         z-index: 30;
@@ -568,6 +605,30 @@
     }
     .xlsx-pctrow .xlsx-rownum { background: #f8fafc; }
 
+    /* Column show/hide checkboxes in the header */
+    .xlsx-colcheck-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+        cursor: pointer;
+    }
+    .xlsx-colcheck {
+        width: 12px;
+        height: 12px;
+        accent-color: #1149b0;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .xlsx-colcheck-label:hover span { color: #0e3a8c; }
+    /* Unchecked (deselected) column: stays in place, dimmed + excluded from totals */
+    .xlsx-table td.xlsx-col-off,
+    .xlsx-table th.xlsx-col-off {
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+    }
+    .xlsx-table td.xlsx-col-off { font-weight: 500; }
+
     /* Crosshair hover: cell + row + column highlight */
     .xlsx-table td.x-hot, .xlsx-table th.x-hot {
         background: #dbeafe !important;
@@ -590,9 +651,9 @@
             const refBox = document.getElementById('xlsxCellRef');
             const formulaText = document.getElementById('xlsxFormulaText');
             const formulaValue = document.getElementById('xlsxFormulaValue');
-            const defaultRef = refBox.textContent;
-            const defaultText = formulaText.textContent;
-            const defaultValue = formulaValue.textContent;
+            let defaultRef = refBox.textContent;
+            let defaultText = formulaText.textContent;
+            let defaultValue = formulaValue.textContent;
 
             let lastRow = null, lastColIndex = -1, lastCells = [];
 
@@ -641,7 +702,7 @@
                 lastRow.classList.add('x-rowh');
                 lastColIndex = colIndex;
                 Array.from(sheet.rows).forEach(tr => {
-                    const c = tr.cells[colIndex];
+                    const c = cellAt(tr, colIndex);
                     if (c && c !== cell) {
                         c.classList.add('x-colh');
                         lastCells.push(c);
@@ -654,6 +715,82 @@
             sheet.addEventListener('mouseleave', function () {
                 clearCross();
                 showFormula(null);
+            });
+
+            // ===== Column show/hide checkboxes =====
+            // Unchecking a head column hides it and recomputes every visible
+            // total (row totals, grand total, % of grand total) client-side.
+            const fmt = n => n.toLocaleString('en-US');
+            const cellNum = c => parseFloat((c.textContent || '').replace(/[^\d.-]/g, '')) || 0;
+            // Every row now shares the same grid: k=0 gutter, k=1 depot,
+            // k=2… heads — so a column's cells all share one index.
+            const cellAt = (tr, col) => tr.cells[col];
+            const headerRow = Array.from(sheet.rows).find(r => r.querySelector('.xlsx-head-total'));
+            const headCount = headerRow.cells.length - 2; // corner + heads + total
+            const totalColIndex = 2 + headCount;          // 0 = gutter, 1 = depot, heads start at 2
+
+            const recomputeTotals = function () {
+                const bodyRows = Array.from(sheet.tBodies[0].rows);
+                const depotRows = bodyRows.filter(tr => !tr.classList.contains('xlsx-totalrow') && !tr.classList.contains('xlsx-pctrow'));
+                const totalRow = bodyRows.find(tr => tr.classList.contains('xlsx-totalrow'));
+                const pctRow = bodyRows.find(tr => tr.classList.contains('xlsx-pctrow'));
+
+                // Row totals: sum only SELECTED (non-dimmed) head cells —
+                // unchecked columns stay visible but are excluded.
+                depotRows.forEach(tr => {
+                    let sum = 0;
+                    for (let i = 2; i < totalColIndex; i++) {
+                        const c = tr.cells[i];
+                        if (c && !c.classList.contains('xlsx-col-off')) sum += cellNum(c);
+                    }
+                    const totalCell = tr.cells[totalColIndex];
+                    totalCell.textContent = fmt(sum);
+                    totalCell.dataset.val = '৳ ' + sum.toFixed(2);
+                    totalCell.title = '৳ ' + sum.toFixed(2);
+                });
+
+                // Column totals are per-column — recompute grand total from the
+                // SELECTED columns' Σ cells, then refresh each % cell.
+                let grand = 0;
+                for (let i = 2; i < totalColIndex; i++) {
+                    const sigmaCell = totalRow.cells[i];
+                    if (!sigmaCell.classList.contains('xlsx-col-off')) grand += cellNum(sigmaCell);
+                }
+                const grandCell = totalRow.cells[totalColIndex];
+                grandCell.textContent = fmt(grand);
+                grandCell.dataset.val = '৳ ' + grand.toFixed(2);
+                grandCell.title = '৳ ' + grand.toFixed(2);
+
+                if (pctRow) {
+                    for (let i = 2; i < totalColIndex; i++) {
+                        const c = pctRow.cells[i];
+                        if (!c.classList.contains('xlsx-col-off')) {
+                            const colSum = cellNum(totalRow.cells[i]);
+                            c.textContent = grand > 0 ? (colSum / grand * 100).toFixed(1) + '%' : '—';
+                        }
+                    }
+                    const pctAll = pctRow.cells[totalColIndex];
+                    pctAll.textContent = grand > 0 ? '100%' : '—';
+                }
+
+                // Formula bar default reflects the visible grand total
+                defaultValue = '৳ ' + grand.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (!document.querySelector('#xlsxMatrix .x-hot')) {
+                    formulaValue.textContent = defaultValue;
+                }
+            };
+
+            sheet.addEventListener('change', function (e) {
+                if (!e.target.matches('.xlsx-colcheck')) return;
+                const col = parseInt(e.target.dataset.col, 10);
+                // Unchecked columns are NOT removed — they stay in place,
+                // dimmed, and are simply excluded from every total.
+                Array.from(sheet.rows).forEach(tr => {
+                    const c = cellAt(tr, col);
+                    if (c) c.classList.toggle('xlsx-col-off', !e.target.checked);
+                });
+
+                recomputeTotals();
             });
         }
 

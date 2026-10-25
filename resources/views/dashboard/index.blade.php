@@ -301,13 +301,19 @@
                 </h3>
                 <p class="text-xs text-slate-400">Latest expense entries recorded from depot operations</p>
             </div>
-            <a href="{{ route('expenses.index') }}" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center">
-                View Full Expense Audit Log <i class="fa-solid fa-arrow-right ml-1.5"></i>
-            </a>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="exportTableToExcel('recentExpensesTable', 'Recent_Expenses_{{ now()->format('Ymd_His') }}')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition" title="Export this table to Excel">
+                    <i class="fa-solid fa-file-excel"></i> Export to Excel
+                </button>
+                <a href="{{ route('expenses.index') }}" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center">
+                    View Full Expense Audit Log <i class="fa-solid fa-arrow-right ml-1.5"></i>
+                </a>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
+            <table class="w-full text-left border-collapse text-xs" id="recentExpensesTable">
                 <thead>
                     <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                         <th class="py-3 px-4">Date</th>

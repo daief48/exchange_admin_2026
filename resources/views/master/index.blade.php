@@ -90,7 +90,8 @@
         <div id="panel-depots" class="p-6 space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">Register a new location instantly, or bulk import from Excel below.</p>
-                <button type="button" onclick="openMasterModal('depots')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
+                <button type="button" onclick="exportTableToExcel('masterDepotsTable', 'Master_Depots')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                    <button type="button" onclick="openMasterModal('depots')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
                     <i class="fa-solid fa-plus"></i> Add Depot
                 </button>
             </div>
@@ -123,7 +124,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs" id="masterDepotsTable">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                             <th class="py-3 px-4">#</th>
@@ -156,7 +157,8 @@
         <div id="panel-businesses" class="p-6 space-y-6 hidden">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">Register a new business category instantly, or bulk import from Excel below.</p>
-                <button type="button" onclick="openMasterModal('businesses')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
+                <button type="button" onclick="exportTableToExcel('masterBusinessesTable', 'Master_Business_Units')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                    <button type="button" onclick="openMasterModal('businesses')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
                     <i class="fa-solid fa-plus"></i> Add Business Unit
                 </button>
             </div>
@@ -189,7 +191,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs" id="masterBusinessesTable">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                             <th class="py-3 px-4">#</th>
@@ -220,7 +222,8 @@
         <div id="panel-heads" class="p-6 space-y-6 hidden">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">Register a new expense head instantly, or bulk import from Excel below.</p>
-                <button type="button" onclick="openMasterModal('heads')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
+                <button type="button" onclick="exportTableToExcel('masterHeadsTable', 'Master_Expense_Heads')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                    <button type="button" onclick="openMasterModal('heads')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
                     <i class="fa-solid fa-plus"></i> Add Expense Head
                 </button>
             </div>
@@ -253,7 +256,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs" id="masterHeadsTable">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                             <th class="py-3 px-4">#</th>
@@ -292,7 +295,8 @@
         <div id="panel-users" class="p-6 space-y-6 hidden">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">Provision a depot operator account (Employee ID &amp; depot assignment required).</p>
-                <button type="button" onclick="openMasterModal('users')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
+                <button type="button" onclick="exportTableToExcel('masterUsersTable', 'Master_Users')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                    <button type="button" onclick="openMasterModal('users')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
                     <i class="fa-solid fa-user-plus"></i> Add Depot Operator
                 </button>
             </div>
@@ -325,7 +329,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs" id="masterUsersTable">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                             <th class="py-3 px-4">#</th>
@@ -383,8 +387,14 @@
                 </p>
             </div>
 
+            <div class="flex items-center justify-end">
+                <button type="button" onclick="exportTableToExcel('masterMissingTable', 'Missing_Entry_Logs')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </button>
+            </div>
+
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs" id="masterMissingTable">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                             <th class="py-3 px-4">Date</th>
