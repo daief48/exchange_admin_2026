@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - ACI Distribution Expense Management System</title>
+    <title>Login — Expense Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -38,7 +38,7 @@
                     <use href="#yfork-login" transform="rotate(240 32 32)" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" fill="none"/>
                 </svg>
             </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">ACI MOTORS LIMITED</h1>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">EXPENSE ADMIN</h1>
             <p class="text-yamaha-600 font-semibold text-sm tracking-wide mt-1">Distribution &amp; Showroom Expense Management</p>
             <p class="text-slate-400 text-xs mt-1">Enterprise Budget, Daily Logistics &amp; Variance System</p>
         </div>
@@ -96,7 +96,7 @@
             </form>
         </div>
 
-        <p class="text-center text-xs text-slate-400 mt-6">&copy; {{ date('Y') }} ACI Motors Ltd. All rights reserved.</p>
+        <p class="text-center text-xs text-slate-400 mt-6">&copy; {{ date("Y") }} Expense Admin. All rights reserved.</p>
     </div>
 
 </body>

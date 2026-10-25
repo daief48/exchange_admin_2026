@@ -219,7 +219,7 @@ class ExpenseController extends Controller
         }
 
         $format = $request->get('format', 'xlsx');
-        $fileName = 'ACI_Expenses_' . date('Y_m_d_His') . '.' . $format;
+        $fileName = 'ExpenseAdmin_Expenses_' . date('Y_m_d_His') . '.' . $format;
 
         $filters = $request->only([
             'depot_id', 'business_id', 'expense_head_id',

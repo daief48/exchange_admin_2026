@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'ACI Expense Management') - Distribution & Showroom</title>
+    <title>@yield('title', 'Dashboard') — Expense Admin</title>
 
     <!-- Google Fonts & Tailwind CDN & FontAwesome & ApexCharts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -309,7 +309,7 @@
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <span class="text-lg font-extrabold tracking-tight text-white block leading-tight">ACI MOTORS</span>
+                    <span class="text-lg font-extrabold tracking-tight text-white block leading-tight">Expense Admin</span>
                     <span class="text-[10px] font-semibold text-cyan-300 uppercase tracking-[0.22em] block">Distribution Expense</span>
                 </div>
             </a>
@@ -466,7 +466,7 @@
         <!-- Footer -->
         <footer class="mt-auto bg-white/70 backdrop-blur border-t border-yamaha-100 py-4">
             <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-                <p>&copy; {{ date('Y') }} ACI Motors Ltd. Distribution &amp; Showroom Expense Management System.</p>
+                <p>&copy; {{ date('Y') }} Expense Admin — Distribution &amp; Showroom Expense Management System.</p>
                 <p class="font-medium text-yamaha-400">Strict Backdate Protection &bull; Multi-Tier RBAC &bull; Automated Cut-off Alerts</p>
             </div>
         </footer>

@@ -7,7 +7,7 @@
 <body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 24px; color: #1e293b;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <div style="background: #dc2626; color: #ffffff; padding: 18px 24px;">
-            <h2 style="margin: 0; font-size: 20px;">ACI Distribution Expense Monitoring</h2>
+            <h2 style="margin: 0; font-size: 20px;">Expense Admin — Distribution Monitoring</h2>
             <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Automated Daily Cut-off Alert System</p>
         </div>
         <div style="padding: 24px;">
@@ -40,7 +40,7 @@
             </div>
         </div>
         <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 24px; font-size: 12px; color: #94a3b8; text-align: center;">
-            ACI Distribution & Showroom Expense Management System &bull; Automated Cron Engine
+            Expense Admin &bull; Distribution &amp; Showroom Expense Management System &bull; Automated Cron Engine
         </div>
     </div>
 </body>

@@ -52,7 +52,7 @@
         <tr>
             <td style="width:60%;">
                 <div class="brandbar">
-                    <div class="company">ACI MOTORS LIMITED</div>
+                    <div class="company">EXPENSE ADMIN</div>
                     <div class="tagline">DISTRIBUTION &amp; SHOWROOM EXPENSE MANAGEMENT SYSTEM</div>
                 </div>
             </td>
@@ -119,7 +119,7 @@
     </table>
 
     <div class="footer">
-        System-generated voucher (Tx #{{ $expense->id }}) &bull; Generated {{ now()->format('Y-m-d H:i') }} &bull; ACI Motors Ltd. — Distribution &amp; Showroom Expense Management System
+        System-generated voucher (Tx #{{ $expense->id }}) &bull; Generated {{ now()->format('Y-m-d H:i') }} &bull; Expense Admin — Distribution &amp; Showroom Expense Management System
     </div>
 
 </div>
