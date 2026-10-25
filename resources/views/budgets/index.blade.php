@@ -77,7 +77,7 @@
                 </div>
 
                 <div class="ml-auto flex items-center gap-2">
-                    <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 rounded-xl px-3 py-1.5">
+                    <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 rounded-xl px-3 py-1.5" id="matrixScopeBadge">
                         <i class="fa-solid fa-eye text-[10px] text-yamaha-600"></i>
                         Showing {{ $matrixDepots->count() }} Depots × {{ $matrixHeads->count() }} Heads
                         <span class="text-slate-300">|</span>
@@ -285,8 +285,13 @@
                     <tr>
                         <th class="xlsx-rownum">{{ $rowNum }}</th>
                         <td class="xlsx-depotcell">
-                            <span class="text-yamaha-800 font-bold">{{ $depot->name }}</span>
-                            <span class="text-[10px] text-slate-400 block font-mono">{{ $depot->code }}</span>
+                            <label class="flex items-start gap-2 cursor-pointer" title="Uncheck to exclude this depot from all totals">
+                                <input type="checkbox" class="xlsx-rowcheck mt-0.5" checked data-row="{{ $rowNum }}">
+                                <span class="min-w-0">
+                                    <span class="text-yamaha-800 font-bold block leading-tight">{{ $depot->name }}</span>
+                                    <span class="text-[10px] text-slate-400 block font-mono">{{ $depot->code }}</span>
+                                </span>
+                            </label>
                         </td>
                         @foreach($matrixHeads as $head)
                         @php
@@ -509,7 +514,19 @@
         border-right: 1px solid #cbd5e1;
     }
     .xlsx-formula-text { color: #0f172a; font-weight: 600; flex: 1; min-width: 0; }
-    .xlsx-bar-value { font-weight: 800; color: #0e3a8c; font-variant-numeric: tabular-nums; }
+    /* Grand-total readout: prominent gradient badge so it pops in the bar */
+    .xlsx-bar-value {
+        font-weight: 800;
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
+        font-size: 12.5px;
+        letter-spacing: 0.02em;
+        background: linear-gradient(135deg, #1149b0, #0093c7);
+        padding: 0.32rem 0.85rem;
+        border-radius: 0.6rem;
+        box-shadow: 0 5px 12px -5px rgba(17, 73, 176, 0.55);
+        white-space: nowrap;
+    }
 
     .xlsx-table {
         border-collapse: separate;
@@ -662,6 +679,21 @@
         flex-shrink: 0;
     }
     .xlsx-colcheck-label:hover span { color: #0e3a8c; }
+    /* Row show/hide checkboxes (depot rows) */
+    .xlsx-rowcheck {
+        width: 12px;
+        height: 12px;
+        accent-color: #1149b0;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    /* Unchecked (deselected) DEPOT ROW: stays in place, dimmed + excluded
+       from column totals / grand total */
+    .xlsx-table tr.xlsx-row-off td,
+    .xlsx-table tr.xlsx-row-off th {
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+    }
     /* Unchecked (deselected) column: stays in place, dimmed + excluded from totals */
     .xlsx-table td.xlsx-col-off,
     .xlsx-table th.xlsx-col-off {
@@ -670,16 +702,19 @@
     }
     .xlsx-table td.xlsx-col-off { font-weight: 500; }
 
-    /* Crosshair hover: cell + row + column highlight */
+    /* Crosshair hover: crisp cell outline + row/column tint — visible even
+       on dimmed (unchecked) rows and columns. NOTE: no position/z-index here —
+       overriding position would un-stick the frozen depot cells and make them
+       jump on hover. */
     .xlsx-table td.x-hot, .xlsx-table th.x-hot {
-        background: #dbeafe !important;
-        box-shadow: inset 0 0 0 1.5px #2266ef;
-        position: relative;
+        background: #bfdbfe !important;
+        outline: 2px solid #2266EF;
+        outline-offset: -2px;
     }
-    .xlsx-table tr.x-rowh td, .xlsx-table tr.x-rowh th { background-color: #f4f8ff; }
-    .xlsx-table tr.x-rowh td.xlsx-depotcell, .xlsx-table tr.x-rowh th.xlsx-rownum { background-color: #eef4ff; }
-    .xlsx-table td.x-colh, .xlsx-table th.x-colh { background-color: #f4f8ff !important; }
-    .xlsx-table td.x-colh.x-hot, .xlsx-table tr.x-rowh td.x-hot { background: #dbeafe !important; }
+    .xlsx-table tr.x-rowh td, .xlsx-table tr.x-rowh th { background-color: #cfe3ff !important; }
+    .xlsx-table tr.x-rowh td.xlsx-depotcell, .xlsx-table tr.x-rowh th.xlsx-rownum { background-color: #cfe3ff !important; }
+    .xlsx-table td.x-colh, .xlsx-table th.x-colh { background-color: #e8f1ff !important; }
+    .xlsx-table td.x-colh.x-hot, .xlsx-table tr.x-rowh td.x-hot { background: #bfdbfe !important; }
 </style>
 @endpush
 
@@ -792,8 +827,22 @@
                     totalCell.title = '৳ ' + sum.toFixed(2);
                 });
 
-                // Column totals are per-column — recompute grand total from the
-                // SELECTED columns' Σ cells, then refresh each % cell.
+                // Column Σ totals: sum each head column over SELECTED depot rows
+                // (rows unchecked via their checkbox are excluded).
+                for (let i = 2; i < totalColIndex; i++) {
+                    let colSum = 0;
+                    depotRows.forEach(tr => {
+                        if (tr.classList.contains('xlsx-row-off')) return;
+                        const c = tr.cells[i];
+                        if (c && !c.classList.contains('xlsx-col-off')) colSum += cellNum(c);
+                    });
+                    const sigmaCell = totalRow.cells[i];
+                    sigmaCell.textContent = fmt(colSum);
+                    sigmaCell.dataset.val = '৳ ' + colSum.toFixed(2);
+                    sigmaCell.title = '৳ ' + colSum.toFixed(2);
+                }
+
+                // Grand total: sum of the SELECTED columns' Σ values.
                 let grand = 0;
                 for (let i = 2; i < totalColIndex; i++) {
                     const sigmaCell = totalRow.cells[i];
@@ -821,9 +870,31 @@
                 if (!document.querySelector('#xlsxMatrix .x-hot')) {
                     formulaValue.textContent = defaultValue;
                 }
+
+                // Make the toggle effect obvious: live counts in the Σ label
+                // and the console badge ("Showing N Depots × M Heads | ৳X M").
+                const activeRows = depotRows.filter(tr => !tr.classList.contains('xlsx-row-off')).length;
+                const activeCols = Array.from({ length: totalColIndex - 2 }, (_, k) => totalRow.cells[2 + k])
+                    .filter(c => !c.classList.contains('xlsx-col-off')).length;
+                const totalLabel = totalRow.cells[1];
+                if (totalLabel) totalLabel.textContent = 'Total (' + activeRows + ' depots)';
+                const badge = document.getElementById('matrixScopeBadge');
+                if (badge) {
+                    badge.innerHTML = '<i class="fa-solid fa-eye text-[10px] text-yamaha-600"></i> ' +
+                        'Showing ' + activeRows + ' Depots × ' + activeCols + ' Heads' +
+                        '<span class="text-slate-300">|</span>' +
+                        '<span class="text-emerald-700">৳ ' + (grand / 1000000).toFixed(1) + ' M</span>';
+                }
             };
 
             sheet.addEventListener('change', function (e) {
+                // Depot-row checkboxes: dim the row, exclude it from every total.
+                if (e.target.matches('.xlsx-rowcheck')) {
+                    const tr = e.target.closest('tr');
+                    if (tr) tr.classList.toggle('xlsx-row-off', !e.target.checked);
+                    recomputeTotals();
+                    return;
+                }
                 if (!e.target.matches('.xlsx-colcheck')) return;
                 const col = parseInt(e.target.dataset.col, 10);
                 // Unchecked columns are NOT removed — they stay in place,

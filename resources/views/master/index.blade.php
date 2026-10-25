@@ -293,12 +293,50 @@
 
         <!-- 4. Users & RBAC Panel -->
         <div id="panel-users" class="p-6 space-y-6 hidden">
+
+            <!-- Login Credentials directory -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        <i class="fa-solid fa-id-card-clip text-yamaha-600 mr-1"></i> User Login Credentials
+                    </h4>
+                    <span class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
+                        <i class="fa-solid fa-key mr-1"></i> Shared password: 123456
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    @foreach($users as $u)
+                    <div class="flex items-center justify-between gap-2 p-2.5 bg-white border border-slate-200 rounded-xl">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-800 truncate">
+                                <span class="font-mono text-indigo-700">{{ $u->employee_id ?? '—' }}</span>
+                                &middot; {{ $u->email }}
+                            </p>
+                            <p class="text-[10px] text-slate-400 truncate">{{ $u->name }} &middot; {{ $u->depot?->name ?? 'Head Office' }}</p>
+                        </div>
+                        <form action="{{ route('master.users.reset-password', $u) }}" method="POST" onsubmit="return confirm('Reset password of {{ $u->name }} to 123456?')">
+                            @csrf
+                            <button type="submit" title="Reset this user's password to 123456" class="shrink-0 px-2 py-1.5 rounded-lg text-[10px] font-bold text-yamaha-700 bg-yamaha-50 border border-yamaha-200 hover:bg-yamaha-100 transition">
+                                <i class="fa-solid fa-rotate-left"></i> Reset
+                            </button>
+                        </form>
+                    </div>
+                    @endforeach
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2.5 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-slate-300"></i>
+                    Passwords are stored hashed. Use <strong>Reset</strong> to set an account back to the shared password 123456, then hand over the Employee ID / Email above.
+                </p>
+            </div>
+
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">Provision a depot operator account (Employee ID &amp; depot assignment required).</p>
-                <button type="button" onclick="exportTableToExcel('masterUsersTable', 'Master_Users')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="exportTableToExcel('masterUsersTable', 'Master_Users')" title="Export this table to Excel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Excel</button>
                     <button type="button" onclick="openMasterModal('users')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yamaha-600 hover:bg-yamaha-500 text-white text-xs font-bold rounded-xl shadow-md shadow-yamaha-600/30 transition">
-                    <i class="fa-solid fa-user-plus"></i> Add Depot Operator
-                </button>
+                        <i class="fa-solid fa-user-plus"></i> Add Depot Operator
+                    </button>
+                </div>
             </div>
 
             <!-- Bulk Upload: Users -->

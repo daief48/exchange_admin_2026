@@ -71,6 +71,47 @@ class ExpenseController extends Controller
         return view('expenses.index', compact('expenses', 'depots', 'businesses', 'expenseHeads'));
     }
 
+    /**
+     * Dedicated read-only log for DEPOT OPERATORS: every entry recorded for
+     * their own depot/showroom. Head Office and Auditor roles are redirected
+     * to the full audit log instead — this page belongs to the depot panel.
+     */
+    public function myDepot()
+    {
+        $user = auth()->user();
+
+        if (!$user->isDepotOperator()) {
+            abort(403, 'This page is dedicated to depot / showroom operators.');
+        }
+
+        $baseQuery = Expense::query()
+            ->with(['depot', 'business', 'expenseHead', 'user'])
+            ->where('depot_id', $user->depot_id);
+
+        $allTimeTotal = (float) (clone $baseQuery)->sum('amount');
+
+        $expenses = (clone $baseQuery)
+            ->latest('date')
+            ->latest('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        $month = strtoupper(now()->format('M'));
+        $year = now()->year;
+        $monthTotal = (float) Expense::where('depot_id', $user->depot_id)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->sum('amount');
+
+        return view('expenses.my-depot', compact(
+            'expenses',
+            'allTimeTotal',
+            'monthTotal',
+            'month',
+            'year'
+        ));
+    }
+
     public function create()
     {
         $user = auth()->user();

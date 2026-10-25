@@ -29,6 +29,70 @@ class AccessControlTest extends TestCase
         ])->assertStatus(403);
     }
 
+    public function test_my_depot_expenses_page_is_dedicated_to_depot_operators(): void
+    {
+        $depotUser = User::where('email', 'dhaka.depot@aci-bd.com')->first();
+        $this->actingAs($depotUser);
+
+        // Depot operators get their dedicated log page.
+        $response = $this->get(route('my-depot.expenses'));
+        $response->assertOk();
+        $response->assertSee('My Depot Expense Log');
+        $response->assertSee('Dhaka');
+
+        // Head Office and Auditor are pointed to the full audit log instead.
+        $this->actingAs(User::where('email', 'admin@gmail.com')->first());
+        $this->get(route('my-depot.expenses'))->assertStatus(403);
+
+        $this->actingAs(User::where('email', 'auditor@aci-bd.com')->first());
+        $this->get(route('my-depot.expenses'))->assertStatus(403);
+    }
+
+    public function test_login_page_hides_demo_one_click_switcher(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('Fast Demo 1-Click Login')
+            ->assertSee('Sign In to Portal');
+    }
+
+    public function test_admin_can_reset_user_password_to_shared_default(): void
+    {
+        $hoAdmin = User::where('email', 'admin@gmail.com')->first();
+        $this->actingAs($hoAdmin);
+
+        $target = User::where('email', 'dhaka.depot@aci-bd.com')->first();
+        $target->update(['password' => bcrypt('something-else')]);
+
+        // Depot operators must not be able to reset passwords.
+        $this->actingAs($target);
+        $this->post(route('master.users.reset-password', $target))->assertStatus(403);
+
+        // HO resets → shared password works again.
+        $this->actingAs($hoAdmin);
+        $this->from(route('master.index'))
+            ->post(route('master.users.reset-password', $target))
+            ->assertRedirect(route('master.index'))
+            ->assertSessionHas('success');
+
+        $this->post(route('login'), [
+            'login' => 'EMP-101',
+            'password' => '123456',
+        ])->assertRedirect(route('dashboard'));
+
+        // Functional verification: the reset made 123456 valid again for the
+        // Dhaka operator's EMP-101 identity.
+        $this->assertTrue(
+            \Illuminate\Support\Facades\Hash::check('123456', $target->fresh()->password),
+            'Reset must set the password back to 123456'
+        );
+        $this->assertTrue(
+            \Illuminate\Support\Facades\Auth::attempt(['employee_id' => 'EMP-101', 'password' => '123456']),
+            'EMP-101 / 123456 must be valid credentials after the reset'
+        );
+        $this->assertSame('dhaka.depot@aci-bd.com', auth()->user()->email);
+    }
+
     public function test_auditor_cannot_access_master_data_module(): void
     {
         $auditor = User::where('email', 'auditor@aci-bd.com')->first();

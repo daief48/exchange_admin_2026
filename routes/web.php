@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
 
     // Module 1 & 6: Expenses CRUD & Raw Data Export
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::get('/my-depot', [ExpenseController::class, 'myDepot'])->name('my-depot.expenses');
     Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::get('/expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
@@ -49,6 +50,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/businesses', [MasterDataController::class, 'storeBusiness'])->name('businesses.store');
         Route::post('/expense-heads', [MasterDataController::class, 'storeExpenseHead'])->name('expense-heads.store');
         Route::post('/users', [MasterDataController::class, 'storeUser'])->name('users.store');
+        Route::post('/users/{user}/reset-password', [MasterDataController::class, 'resetPassword'])->name('users.reset-password');
 
         // Bulk Upload: templates + Excel/CSV import for every master entity
         Route::get('/template/{type}', [MasterDataController::class, 'downloadTemplate'])->name('template');

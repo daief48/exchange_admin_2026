@@ -102,6 +102,17 @@ class MasterDataController extends Controller
         return back()->with('success', "Depot Operator '{$user->name}' ({$user->employee_id}) created successfully.");
     }
 
+    /**
+     * Reset a user's password back to the shared demo default (123456) so the
+     * admin can hand out working credentials at any time.
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $user->update(['password' => Hash::make('123456')]);
+
+        return back()->with('success', "Password for '{$user->name}' ({$user->employee_id}) was reset to 123456.");
+    }
+
     // =========================================================
     // Module: Bulk Upload (Excel / CSV) for all master entities
     // =========================================================

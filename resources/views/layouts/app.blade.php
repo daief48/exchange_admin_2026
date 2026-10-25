@@ -341,6 +341,12 @@
                         <i class="fa-solid fa-receipt w-5 text-center text-xs"></i>
                         <span>Expense Logs</span>
                     </a>
+                    @else
+                    <a href="{{ route('my-depot.expenses') }}"
+                       class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition {{ request()->routeIs('my-depot.*') ? 'nav-link-active bg-gradient-to-r from-yamaha-600/90 to-yamaha-500/70 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5 hover:translate-x-0.5' }}">
+                        <i class="fa-solid fa-warehouse w-5 text-center text-xs"></i>
+                        <span>My Depot Expenses</span>
+                    </a>
                     @endif
                     <a href="{{ route('budgets.index') }}"
                        class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition {{ request()->routeIs('budgets.*') ? 'nav-link-active bg-gradient-to-r from-yamaha-600/90 to-yamaha-500/70 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5 hover:translate-x-0.5' }}">
