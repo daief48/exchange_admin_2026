@@ -130,15 +130,15 @@
                     <select name="expense_head_id" id="expense_head_id" required class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                         <option value="">-- Select Expense Head (39 Items) --</option>
                         @foreach($expenseHeads as $head)
-                            <option value="{{ $head->id }}" data-transport="{{ $head->is_transport_related ? '1' : '0' }}" {{ old('expense_head_id') == $head->id ? 'selected' : '' }}>
-                                {{ $head->name }} {{ $head->is_transport_related ? '(Transport)' : '' }}
+                            <option value="{{ $head->id }}" {{ old('expense_head_id') == $head->id ? 'selected' : '' }}>
+                                {{ $head->name }}
                             </option>
                         @endforeach
                     </select>
                 </div>
             </div>
 
-            <!-- Row 3: Amount, Transport Mode (Conditional) -->
+            <!-- Row 3: Amount -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <!-- Amount -->
                 <div>
@@ -151,22 +151,6 @@
                             class="w-full pl-8 pr-4 py-2.5 text-sm font-bold rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
                     <span class="block text-[10px] text-slate-400 mt-1">Minimum acceptable value: 0.01 BDT</span>
-                </div>
-
-                <!-- Transport Mode (Conditional: Visible when expense head is transport/carriage/courier) -->
-                <div id="transportModeContainer" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Transport / Carriage Mode <span id="transportRequiredBadge" class="text-amber-600 font-semibold text-[10px]">(Relevant for logistics)</span>
-                    </label>
-                    <select name="transport_mode" id="transport_mode" class="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                        <option value="">-- Select Logistics Mode --</option>
-                        <option value="Courier" {{ old('transport_mode') == 'Courier' ? 'selected' : '' }}>Courier (Document / Parcel)</option>
-                        <option value="Covered Van" {{ old('transport_mode') == 'Covered Van' ? 'selected' : '' }}>Covered Van</option>
-                        <option value="Truck" {{ old('transport_mode') == 'Truck' ? 'selected' : '' }}>Heavy Truck (5T - 15T)</option>
-                        <option value="Pickup / Van" {{ old('transport_mode') == 'Pickup / Van' ? 'selected' : '' }}>Local Pickup / Van</option>
-                        <option value="Cargo Ferry" {{ old('transport_mode') == 'Cargo Ferry' ? 'selected' : '' }}>Cargo Ferry / Waterway</option>
-                        <option value="Public Transit" {{ old('transport_mode') == 'Public Transit' ? 'selected' : '' }}>Bus / Rickshaw / Local Conveyance</option>
-                    </select>
                 </div>
             </div>
 
@@ -214,27 +198,8 @@
 @push('scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const expenseHeadSelect = document.getElementById('expense_head_id');
-        const transportContainer = document.getElementById('transportModeContainer');
         const fileInput = document.getElementById('voucher_attachment');
         const uploadPrompt = document.getElementById('fileUploadPrompt');
-
-        // Conditional visibility of transport mode
-        function toggleTransportMode() {
-            const selectedOption = expenseHeadSelect.options[expenseHeadSelect.selectedIndex];
-            const isTransport = selectedOption && selectedOption.getAttribute('data-transport') === '1';
-
-            if (isTransport) {
-                transportContainer.classList.remove('opacity-60');
-                transportContainer.classList.add('bg-emerald-50/70', 'border-emerald-300');
-            } else {
-                transportContainer.classList.remove('bg-emerald-50/70', 'border-emerald-300');
-                transportContainer.classList.add('opacity-60');
-            }
-        }
-
-        expenseHeadSelect.addEventListener('change', toggleTransportMode);
-        toggleTransportMode();
 
         // Voucher file feedback
         fileInput.addEventListener('change', function () {

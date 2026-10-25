@@ -535,7 +535,7 @@
             </div>
             <label class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
                 <input type="checkbox" name="is_transport_related" value="1" {{ old('is_transport_related') ? 'checked' : '' }} class="w-4 h-4 rounded text-yamaha-600 focus:ring-yamaha-500">
-                <span class="text-xs font-semibold text-slate-700">Transport / Carriage Related <span class="text-slate-400 font-normal">(enables transport mode logging)</span></span>
+                <span class="text-xs font-semibold text-slate-700">Transport / Carriage Related <span class="text-slate-400 font-normal">(logistics categorisation)</span></span>
             </label>
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button type="button" onclick="closeMasterModal('heads')" class="px-4 py-2 border border-slate-300 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition">Cancel</button>

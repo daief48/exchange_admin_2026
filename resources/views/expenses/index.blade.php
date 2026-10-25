@@ -127,7 +127,6 @@
                         <th class="py-3.5 px-4">Depot</th>
                         <th class="py-3.5 px-4">Business Unit</th>
                         <th class="py-3.5 px-4">Expense Head</th>
-                        <th class="py-3.5 px-4">Transport Mode</th>
                         <th class="py-3.5 px-4 text-right">Amount (BDT)</th>
                         <th class="py-3.5 px-4">Entered By</th>
                         <th class="py-3.5 px-4 text-center">Voucher</th>
@@ -159,9 +158,6 @@
                                     {{ $expense->remarks }}
                                 </span>
                             @endif
-                        </td>
-                        <td class="py-3 px-4 text-slate-500 whitespace-nowrap">
-                            {{ $expense->transport_mode ?? '—' }}
                         </td>
                         <td class="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap text-sm">
                             ৳ {{ number_format($expense->amount, 2) }}

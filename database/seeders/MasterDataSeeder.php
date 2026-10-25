@@ -256,7 +256,6 @@ class MasterDataSeeder extends Seeder
         $businessArray = array_values($businessModels);
         $headsArray = array_values($headModels);
 
-        $modes = ['Courier', 'Covered Van', 'Truck (7 Ton)', 'Cargo Ferry', 'Parcel Service'];
         $sampleRemarks = [
             'Freezer Delivery', 'Cheque Clearing Charge', 'Depot Generator Diesel',
             'Yamaha Spares Delivery', 'Urgent Stationery Dispatch', 'Quarterly Maintenance',
@@ -291,7 +290,6 @@ class MasterDataSeeder extends Seeder
                 'business_id' => $business->id,
                 'expense_head_id' => $head->id,
                 'amount' => $amount,
-                'transport_mode' => $isTransport ? $modes[array_rand($modes)] : null,
                 'remarks' => $sampleRemarks[array_rand($sampleRemarks)],
                 'voucher_path' => null,
                 'user_id' => $hoAdmin->id,

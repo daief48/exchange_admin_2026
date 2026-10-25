@@ -73,11 +73,6 @@
             </div>
 
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                <span class="text-slate-400 font-bold uppercase tracking-wider block mb-1">Transport / Logistics Mode</span>
-                <span class="text-sm font-bold text-slate-900">{{ $expense->transport_mode ?? 'Not Applicable (Non-Carriage)' }}</span>
-            </div>
-
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
                 <span class="text-slate-400 font-bold uppercase tracking-wider block mb-1">Financial Billing Period</span>
                 <span class="text-sm font-bold text-slate-900">{{ $expense->month }} {{ $expense->year }}</span>
                 <span class="block text-slate-500 text-[11px] mt-0.5">Logged Date: {{ $expense->date->format('Y-m-d') }}</span>

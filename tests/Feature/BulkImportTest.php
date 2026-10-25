@@ -61,11 +61,12 @@ class BulkImportTest extends TestCase
         $jashore = Depot::where('name', 'Jashore')->first();
         $benapole = Depot::where('name', 'Benapole')->first();
 
-        $csv = "name,email,password,depot_code\n"
-            . "Md. Rahim Uddin,rahim@aci-bd.com,password123,JASHORE\n"
-            . "Nusrat Jahan,nusrat@aci-bd.com,password123,BENAPOLE\n"
-            . "Dup Admin,admin@gmail.com,password123,JASHORE\n"
-            . "No Depot User,nodepot@aci-bd.com,password123,\n";
+        $csv = "name,employee_id,email,password,depot_code\n"
+            . "Md. Rahim Uddin,EMP-301,rahim@aci-bd.com,123456,JASHORE\n"
+            . "Nusrat Jahan,EMP-302,nusrat@aci-bd.com,123456,BENAPOLE\n"
+            . "Dup Admin,EMP-303,admin@gmail.com,123456,JASHORE\n"
+            . "No Depot User,EMP-304,nodepot@aci-bd.com,123456,\n"
+            . "Missing Employee ID,,noid@aci-bd.com,123456,JASHORE\n";
 
         $this->post(route('master.bulk-import', 'users'), [
             'file' => $this->csvUpload('users.csv', $csv),
@@ -81,14 +82,21 @@ class BulkImportTest extends TestCase
         $this->assertTrue($nusrat->isDepotOperator());
         $this->assertEquals($benapole->id, $nusrat->depot_id);
 
-        // Row without a depot is rejected — no half-configured operators.
+        // Rows without a depot or without an employee ID are rejected —
+        // no half-configured operators.
         $this->assertDatabaseMissing('users', ['email' => 'nodepot@aci-bd.com']);
+        $this->assertDatabaseMissing('users', ['email' => 'noid@aci-bd.com']);
+
+        $rahim = User::where('email', 'rahim@aci-bd.com')->first();
+        $this->assertSame('EMP-301', $rahim->employee_id);
 
         $report = session('bulk_report');
         $this->assertSame(2, $report['inserted']);
         $this->assertSame(1, $report['skipped']);
-        $this->assertSame(1, $report['failed']);
-        $this->assertStringContainsString('depot_code is required', implode(' ', $report['errors']));
+        $this->assertSame(2, $report['failed']);
+        $reportErrors = implode(' ', $report['errors']);
+        $this->assertStringContainsString('depot_code is required', $reportErrors);
+        $this->assertStringContainsString('employee_id is required', $reportErrors);
     }
 
     public function test_bulk_import_rejects_depot_operator_without_depot_code(): void
@@ -96,8 +104,8 @@ class BulkImportTest extends TestCase
         $hoAdmin = User::where('email', 'admin@gmail.com')->first();
         $this->actingAs($hoAdmin);
 
-        $csv = "name,email,password,depot_code\n"
-            . "Ghost Operator,ghost@aci-bd.com,password123,\n";
+        $csv = "name,employee_id,email,password,depot_code\n"
+            . "Ghost Operator,EMP-GHOST,ghost@aci-bd.com,123456,\n";
 
         $this->post(route('master.bulk-import', 'users'), [
             'file' => $this->csvUpload('users.csv', $csv),

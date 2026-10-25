@@ -178,9 +178,8 @@ class MasterDataController extends Controller
         foreach ($rows as $row) {
             $rowNumber++;
 
-            $targetColCount = ($type === 'users' && count(array_filter($row, fn($c) => $c !== null && $c !== '')) <= 4) ? 4 : count($config['columns']);
-            $cells = array_slice($row, 0, $targetColCount);
-            $cells = array_pad($cells, $targetColCount, null);
+            $cells = array_slice($row, 0, count($config['columns']));
+            $cells = array_pad($cells, count($config['columns']), null);
             $cells = array_map(fn ($cell) => $cell === null ? null : trim((string) $cell), $cells);
 
             // Skip fully blank rows (common with spreadsheet exports)
@@ -294,30 +293,28 @@ class MasterDataController extends Controller
         return 'inserted';
     }
 
-    private function importUserRow(...$args): string
+    private function importUserRow(?string $name, ?string $employeeId, ?string $email, ?string $password, ?string $depotCode): string
     {
-        if (count($args) >= 5) {
-            [$name, $employeeId, $email, $password, $depotCode] = array_slice($args, 0, 5);
-        } else {
-            [$name, $email, $password, $depotCode] = array_pad(array_slice($args, 0, 4), 4, null);
-            $employeeId = null;
-        }
-
         $data = [
             'name' => $name,
-            'employee_id' => $employeeId,
+            'employee_id' => $employeeId !== null ? strtoupper(trim($employeeId)) : null,
             'email' => $email,
             'password' => $password,
         ];
         $this->validateRow($data, [
             'name' => ['required', 'string', 'max:100'],
-            'employee_id' => ['nullable', 'string', 'max:50'],
+            'employee_id' => ['required', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:150'],
             'password' => ['required', 'string', 'min:6'],
+        ], [
+            'employee_id.required' => 'employee_id is required (every operator account needs an Employee ID).',
         ]);
 
         if (User::where('email', $data['email'])->exists()) {
             return 'skipped';
+        }
+        if (User::where('employee_id', $data['employee_id'])->exists()) {
+            throw new \RuntimeException("Employee ID '{$data['employee_id']}' is already registered.");
         }
 
         // Bulk upload provisions Depot Operator accounts only.
@@ -329,14 +326,9 @@ class MasterDataController extends Controller
             throw new \RuntimeException("Depot '{$depotCode}' not found by code or name.");
         }
 
-        $empId = !empty($data['employee_id']) ? strtoupper(trim($data['employee_id'])) : null;
-        if ($empId && User::where('employee_id', $empId)->exists()) {
-            throw new \RuntimeException("Employee ID '{$empId}' is already registered.");
-        }
-
         $user = User::create([
             'name' => $data['name'],
-            'employee_id' => $empId,
+            'employee_id' => $data['employee_id'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'role' => 'depot_operator',
@@ -347,9 +339,9 @@ class MasterDataController extends Controller
         return 'inserted';
     }
 
-    private function validateRow(array $data, array $rules): void
+    private function validateRow(array $data, array $rules, array $messages = []): void
     {
-        $validator = Validator::make($data, $rules);
+        $validator = Validator::make($data, $rules, $messages);
         if ($validator->fails()) {
             throw new \RuntimeException(implode(' ', $validator->errors()->all()));
         }

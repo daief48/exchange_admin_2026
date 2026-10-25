@@ -20,7 +20,6 @@ class Expense extends Model
         'business_id',
         'expense_head_id',
         'amount',
-        'transport_mode',
         'remarks',
         'voucher_path',
         'user_id',

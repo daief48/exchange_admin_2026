@@ -115,7 +115,6 @@ class ExpenseController extends Controller
                 'business_id' => $validated['business_id'],
                 'expense_head_id' => $validated['expense_head_id'],
                 'amount' => $validated['amount'],
-                'transport_mode' => $validated['transport_mode'] ?? null,
                 'remarks' => $validated['remarks'] ?? null,
                 'voucher_path' => $voucherPath,
                 'user_id' => $user->id,

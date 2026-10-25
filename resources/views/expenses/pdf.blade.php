@@ -88,14 +88,14 @@
         <tr>
             <td class="k">Expense Head</td>
             <td class="v">{{ $expense->expenseHead?->name }}<span>Category Code: {{ $expense->expenseHead?->code }}</span></td>
-            <td class="k">Transport / Logistics</td>
-            <td class="v">{{ $expense->transport_mode ?? 'N/A' }}<span>{{ $expense->transport_mode ? 'Carriage-related entry' : 'Non-carriage entry' }}</span></td>
-        </tr>
-        <tr>
             <td class="k">Logged Date</td>
             <td class="v">{{ $expense->date->format('Y-m-d') }}<span>Financial period: {{ $expense->month }} {{ $expense->year }}</span></td>
+        </tr>
+        <tr>
             <td class="k">Entered By</td>
             <td class="v">{{ $expense->user?->name ?? 'System' }}<span>{{ $expense->created_at->format('Y-m-d H:i:s') }}</span></td>
+            <td class="k">Record Reference</td>
+            <td class="v">EXP-{{ str_pad($expense->id, 6, '0', STR_PAD_LEFT) }}<span>System-generated voucher reference</span></td>
         </tr>
     </table>
 

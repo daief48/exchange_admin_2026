@@ -42,11 +42,6 @@ class StoreExpenseRequest extends FormRequest
                 'numeric',
                 'min:0.01',
             ],
-            'transport_mode' => [
-                'nullable',
-                'string',
-                'max:100',
-            ],
             'remarks' => [
                 'nullable',
                 'string',

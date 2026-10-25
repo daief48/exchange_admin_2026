@@ -314,7 +314,6 @@
                         <th class="py-3 px-4">Depot</th>
                         <th class="py-3 px-4">Business Unit</th>
                         <th class="py-3 px-4">Expense Head</th>
-                        <th class="py-3 px-4">Transport Mode</th>
                         <th class="py-3 px-4 text-right">Amount (BDT)</th>
                         <th class="py-3 px-4">Entered By</th>
                         <th class="py-3 px-4 text-center">Action</th>
@@ -340,9 +339,6 @@
                                 <span class="block text-[11px] text-slate-400 truncate max-w-xs">{{ $exp->remarks }}</span>
                             @endif
                         </td>
-                        <td class="py-3 px-4 text-slate-500 whitespace-nowrap">
-                            {{ $exp->transport_mode ?? '—' }}
-                        </td>
                         <td class="py-3 px-4 text-right font-bold text-slate-900 whitespace-nowrap">
                             ৳ {{ number_format($exp->amount, 2) }}
                         </td>
@@ -357,7 +353,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-slate-400">
+                        <td colspan="7" class="py-8 text-center text-slate-400">
                             No expense records found matching the active filter criteria.
                         </td>
                     </tr>
@@ -662,7 +658,6 @@
                                 <span class="text-slate-800 font-semibold">${exp.expense_head ? exp.expense_head.name : ''}</span>
                                 ${exp.remarks ? `<span class="block text-[11px] text-slate-400 truncate max-w-xs">${exp.remarks}</span>` : ''}
                             </td>
-                            <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${exp.transport_mode ? exp.transport_mode : '—'}</td>
                             <td class="py-3 px-4 text-right font-bold text-slate-900 whitespace-nowrap">৳ ${Number(exp.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${exp.user ? exp.user.name : 'System'}</td>
                             <td class="py-3 px-4 text-center whitespace-nowrap">
@@ -671,7 +666,7 @@
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">No expense records found matching the active filter criteria.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">No expense records found matching the active filter criteria.</td></tr>`;
                 }
             })
             .catch(err => console.error("Error refreshing analytics:", err));
