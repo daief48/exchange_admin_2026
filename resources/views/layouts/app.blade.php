@@ -190,15 +190,18 @@
             text-align: center;
             font-weight: 700;
             letter-spacing: 0.03em;
-            color: #475569;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            color: #334155;
+            background: #ffffff;
+            border: 1px solid #dbe3ee;
             border-radius: 0.6rem;
             transition: all 0.12s ease;
+            /* Tom Select dims options lacking data-selectable to 0.5 opacity —
+               custom calendar tiles must stay fully opaque. */
+            opacity: 1;
         }
         .ts-dropdown.ts-grid .option.active {
             background: #eef4ff;
-            border-color: #b9d1fb;
+            border-color: #86b4f8;
             color: #0e3a8c;
             transform: translateY(-1px);
         }
@@ -229,6 +232,42 @@
             border-style: solid;
             border-color: transparent;
             color: #ffffff;
+        }
+        /* Navigable year picker header (‹ range ›) inside grid dropdowns */
+        .ts-year-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 2px 4px 8px 4px;
+            border-bottom: 1px solid #eef2f7;
+            margin-bottom: 6px;
+        }
+        .ts-year-range {
+            font-size: 12px;
+            font-weight: 800;
+            color: #0e3a8c;
+            letter-spacing: 0.04em;
+        }
+        .ts-year-nav {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #1149b0;
+            border-radius: 0.55rem;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .ts-year-nav:hover {
+            background: #eef4ff;
+            border-color: #b9d1fb;
+            transform: translateY(-1px);
         }
         /* Flip alignment when the panel would overflow the viewport's right edge */
         .ts-dropdown.ts-dropdown-right { left: auto; right: 0; }
@@ -476,12 +515,11 @@
             // own state classes (single, full, focus…) must be preserved.
             const originalClasses = Array.from(el.classList);
 
-            const ts = new TomSelect(el, {
+            const tsConfig = {
                 allowEmptyOption: true,
                 maxOptions: 500,
                 sortField: [{ field: '$order' }],
                 placeholder: emptyOption ? emptyOption.textContent.trim() : 'Type to search & select…',
-                controlInput: isGrid ? null : undefined,
                 // Multi-selects (depot/expense-head filters) get an × on each
                 // selected chip so columns/rows can be unselected in place.
                 plugins: el.multiple ? ['remove_button'] : [],
@@ -490,7 +528,92 @@
                         return '<div class="no-results px-3 py-2 text-slate-400">No match found — keep typing…</div>';
                     },
                 },
-            });
+            };
+            // Month / year grids search nothing — drop the control input. Only
+            // set the key for grids: an explicit `undefined` would override the
+            // library default via object merge, no input would be created, and
+            // the control (e.g. Matrix Controls multi-selects) would render
+            // empty with no placeholder.
+            if (isGrid) {
+                tsConfig.controlInput = null;
+            }
+
+            const ts = new TomSelect(el, tsConfig);
+
+            // Year grids get a calendar-style pager: ‹ range › with 12 tiles per
+            // page, so ANY year can be selected even when the <select> only
+            // ships a handful of options. Detected by all-numeric option values.
+            const optionValues = Array.from(el.options)
+                .map(o => o.value)
+                .filter(v => v !== '');
+            const isYearGrid = isGrid && optionValues.length > 0 && optionValues.every(v => /^\d{4}$/.test(v) && +v > 1900);
+
+            if (isYearGrid) {
+                const picker = { start: null };
+
+                const ensureYearOption = (year) => {
+                    const val = String(year);
+                    if (!el.querySelector('option[value="' + val + '"]')) {
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = val;
+                        el.appendChild(opt);
+                    }
+                    if (!ts.options[val]) {
+                        ts.addOption({ value: val, text: val });
+                    }
+                };
+
+                const renderYearPicker = () => {
+                    const dd = ts.dropdown;
+                    const selectedYear = parseInt(ts.getValue(), 10) || new Date().getFullYear();
+                    if (picker.start === null) {
+                        picker.start = selectedYear - 2;
+                    }
+
+                    const head = document.createElement('div');
+                    head.className = 'ts-year-head';
+                    head.innerHTML =
+                        '<button type="button" class="ts-year-nav" data-dir="-12" tabindex="-1">&lsaquo;</button>' +
+                        '<span class="ts-year-range">' + picker.start + ' &ndash; ' + (picker.start + 11) + '</span>' +
+                        '<button type="button" class="ts-year-nav" data-dir="12" tabindex="-1">&rsaquo;</button>';
+
+                    const grid = document.createElement('div');
+                    grid.className = 'ts-dropdown-content';
+                    for (let y = picker.start; y < picker.start + 12; y++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'option' + (y === selectedYear ? ' selected' : '');
+                        tile.textContent = y;
+                        tile.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ensureYearOption(y);
+                            ts.setValue(String(y));
+                            ts.close();
+                        });
+                        grid.appendChild(tile);
+                    }
+
+                    dd.innerHTML = '';
+                    dd.appendChild(head);
+                    dd.appendChild(grid);
+
+                    head.querySelectorAll('.ts-year-nav').forEach(btn => {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            picker.start += parseInt(this.dataset.dir, 10);
+                            renderYearPicker();
+                        });
+                    });
+                };
+
+                ts.on('dropdown_open', function () {
+                    // Tom Select populates its option list while opening; redraw
+                    // after that so the calendar pager wins the race.
+                    requestAnimationFrame(renderYearPicker);
+                });
+            }
 
             // Remove only the utility classes that were copied from the <select>;
             // sizing comes from the theme CSS so selects match plain inputs.

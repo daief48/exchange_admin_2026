@@ -74,7 +74,12 @@
 
             <div>
                 <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Year <span class="text-rose-500">*</span></label>
-                <input type="number" name="year" value="{{ $year }}" required class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <select name="year" required data-ts-grid="1" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    @php $yearOptions = collect(range(now()->year - 4, now()->year + 1))->push((int) $year)->unique()->sort()->values(); @endphp
+                    @foreach($yearOptions as $y)
+                        <option value="{{ $y }}" {{ (int) $year === $y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div>
@@ -153,7 +158,8 @@
 
             <form action="{{ route('budgets.index') }}" method="GET" id="matrixFilterForm" class="flex flex-wrap items-center gap-2">
                 <select name="year" data-ts-grid="1" class="w-28 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    @foreach([now()->year, now()->year - 1, now()->year - 2] as $y)
+                    @php $yearFilterOptions = collect([now()->year, now()->year - 1, now()->year - 2])->push((int) $year)->unique()->sortDesc()->values(); @endphp
+                    @foreach($yearFilterOptions as $y)
                         <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>FY {{ $y }}</option>
                     @endforeach
                 </select>
@@ -190,80 +196,136 @@
         </div>
     </div>
 
-    <!-- Depot × Expense Head Expense Matrix (pivot: rows = depots, columns = heads) -->
+    <!-- Depot × Expense Head Expense Matrix (Excel-style spreadsheet) -->
+    @php
+        $xlsCol = function ($i) {
+            $s = '';
+            $i = (int) $i + 1;
+            while ($i > 0) {
+                $m = ($i - 1) % 26;
+                $s = chr(65 + $m) . $s;
+                $i = intdiv($i - 1, 26);
+            }
+            return $s;
+        };
+        $headColCount = $matrixHeads->count();
+        $totalColLetter = $xlsCol($headColCount + 1); // heads start at column B; depot = A
+    @endphp
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between">
             <div>
                 <h3 class="text-sm font-bold text-slate-900 flex items-center">
                     <i class="fa-solid fa-table-cells text-emerald-600 mr-2"></i> Depot × Expense Head Expense Summary
                 </h3>
-                <p class="text-xs text-slate-400">Actual incurred expenses — biggest spending heads first (Period: {{ $month }} {{ $year }})</p>
+                <p class="text-xs text-slate-400">Spreadsheet-style pivot — hover any cell to inspect it (Period: {{ $month }} {{ $year }})</p>
             </div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em]">Freeze Panes: On</span>
+        </div>
+
+        <!-- Formula bar -->
+        <div class="xlsx-bar">
+            <span class="xlsx-namebox" id="xlsxCellRef">Σ1</span>
+            <span class="xlsx-fx">fx</span>
+            <span class="xlsx-formula-text truncate" id="xlsxFormulaText">Grand Total</span>
+            <span class="xlsx-bar-value" id="xlsxFormulaValue">৳ {{ number_format($grandTotal, 0) }}</span>
         </div>
 
         <div class="overflow-auto max-h-[70vh]">
-            <table class="w-full text-left border-collapse text-xs min-w-max">
+            <table class="xlsx-table" id="xlsxMatrix">
                 <thead>
-                    <tr class="text-slate-500 uppercase tracking-wider font-semibold">
-                        <th class="sticky top-0 left-0 z-30 bg-slate-50 border-b border-r border-slate-200 py-3.5 px-4 whitespace-nowrap">Depot / Showroom</th>
-                        @foreach($matrixHeads as $head)
-                            <th class="sticky top-0 z-20 bg-slate-50 border-b border-slate-200 py-3.5 px-4 text-right whitespace-nowrap min-w-[115px]" title="{{ $head->name }}">{{ \Illuminate\Support\Str::limit($head->name, 20) }}</th>
+                    <!-- Spreadsheet column-letter strip -->
+                    <tr>
+                        <th class="xlsx-corner-top"><i class="fa-solid fa-table-cells text-[10px]"></i></th>
+                        <th class="xlsx-letter">A</th>
+                        @foreach($matrixHeads as $h)
+                            <th class="xlsx-letter">{{ $xlsCol($loop->index + 1) }}</th>
                         @endforeach
-                        <th class="sticky top-0 z-20 bg-slate-100 border-b border-l border-slate-200 py-3.5 px-4 text-right whitespace-nowrap">Total (BDT)</th>
+                        <th class="xlsx-letter xlsx-letter-total">{{ $totalColLetter }}</th>
+                    </tr>
+                    <!-- Column headers -->
+                    <tr>
+                        <th class="xlsx-head xlsx-corner-left">
+                            <span class="text-slate-700">Depot / Showroom</span>
+                            <span class="block text-[9px] font-semibold text-slate-400 normal-case tracking-normal mt-0.5">{{ $month }} {{ $year }}</span>
+                        </th>
+                        @foreach($matrixHeads as $head)
+                            <th class="xlsx-head text-right" title="{{ $head->name }}">{{ \Illuminate\Support\Str::limit($head->name, 18) }}</th>
+                        @endforeach
+                        <th class="xlsx-head xlsx-head-total text-right">Total (BDT)</th>
                     </tr>
                 </thead>
-                <tbody class="text-slate-700">
+                <tbody>
                     @if($matrixDepots->isEmpty() || $matrixHeads->isEmpty())
                     <tr>
-                        <td colspan="2" class="py-8 text-center text-slate-400">
+                        <td colspan="2" class="py-10 text-center text-slate-400 bg-white">
                             Select at least one depot and one expense head in the filters above to build the matrix.
                         </td>
                     </tr>
                     @else
                     @foreach($matrixDepots as $depot)
                     @php
+                        $rowNum = $loop->iteration;
                         $rowTotal = 0;
                     @endphp
-                    <tr class="hover:bg-slate-50/70 transition">
-                        <td class="sticky left-0 z-10 bg-white border-r border-slate-100 py-3 px-4 font-bold text-slate-900 whitespace-nowrap">
-                            <span class="text-emerald-800">{{ $depot->name }}</span>
-                            <span class="text-[10px] text-slate-400 block font-normal">{{ $depot->code }}</span>
+                    <tr>
+                        <th class="xlsx-rownum">{{ $rowNum }}</th>
+                        <td class="xlsx-depotcell">
+                            <span class="text-yamaha-800 font-bold">{{ $depot->name }}</span>
+                            <span class="text-[10px] text-slate-400 block font-mono">{{ $depot->code }}</span>
                         </td>
                         @foreach($matrixHeads as $head)
                         @php
                             $cell = $expenseMatrix[$depot->id][$head->id] ?? 0;
                             $rowTotal += $cell;
                         @endphp
-                        <td class="py-3 px-4 text-right whitespace-nowrap {{ $cell > 0 ? 'text-slate-700' : 'text-slate-300' }}" title="{{ $cell > 0 ? '৳ ' . number_format($cell, 2) : '' }}">
+                        <td class="xlsx-cell text-right {{ $cell > 0 ? 'xlsx-num' : 'xlsx-empty' }}"
+                            data-ref="{{ $xlsCol($loop->index + 1) }}{{ $rowNum }}"
+                            data-label="{{ $depot->name }} × {{ $head->name }}"
+                            data-val="৳ {{ number_format($cell, 2) }}"
+                            title="{{ $cell > 0 ? '৳ ' . number_format($cell, 2) : '' }}">
                             {{ $cell > 0 ? number_format($cell, 0) : '—' }}
                         </td>
                         @endforeach
-                        <td class="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap border-l border-slate-200 bg-slate-50" title="৳ {{ number_format($rowTotal, 2) }}">
-                            ৳ {{ number_format($rowTotal, 0) }}
+                        <td class="xlsx-cell xlsx-rowtotal text-right"
+                            data-ref="{{ $totalColLetter }}{{ $rowNum }}"
+                            data-label="{{ $depot->name }} — Row Total"
+                            data-val="৳ {{ number_format($rowTotal, 2) }}"
+                            title="৳ {{ number_format($rowTotal, 2) }}">
+                            {{ number_format($rowTotal, 0) }}
                         </td>
                     </tr>
                     @endforeach
-                    <!-- Column totals (pinned to the bottom while scrolling) -->
-                    <tr class="font-black text-slate-900">
-                        <td class="sticky bottom-0 left-0 z-40 bg-slate-100 border-t-2 border-r border-slate-300 py-3 px-4 whitespace-nowrap">Total</td>
+
+                    <!-- Column totals (pinned bottom) -->
+                    <tr class="xlsx-totalrow">
+                        <th class="xlsx-rownum xlsx-pin-bottom-left">Σ</th>
+                        <td class="xlsx-depotcell xlsx-pin-bottom-depot font-black text-slate-900"
+                            data-ref="A{{ $matrixDepots->count() + 1 }}" data-label="Column Totals" data-val="৳ {{ number_format($grandTotal, 2) }}">Total</td>
                         @foreach($matrixHeads as $head)
-                        <td class="sticky bottom-0 z-20 bg-slate-100 border-t-2 border-slate-300 py-3 px-4 text-right whitespace-nowrap" title="{{ $headTotals[$head->id] > 0 ? '৳ ' . number_format($headTotals[$head->id], 2) : '' }}">
-                            {{ $headTotals[$head->id] > 0 ? '৳ ' . number_format($headTotals[$head->id], 0) : '—' }}
+                        <td class="xlsx-cell xlsx-pin-bottom text-right"
+                            data-ref="{{ $xlsCol($loop->index + 1) }}{{ $matrixDepots->count() + 1 }}"
+                            data-label="Σ {{ $head->name }}"
+                            data-val="৳ {{ number_format($headTotals[$head->id], 2) }}"
+                            title="{{ $headTotals[$head->id] > 0 ? '৳ ' . number_format($headTotals[$head->id], 2) : '' }}">
+                            {{ $headTotals[$head->id] > 0 ? number_format($headTotals[$head->id], 0) : '—' }}
                         </td>
                         @endforeach
-                        <td class="sticky bottom-0 z-30 bg-slate-100 border-t-2 border-l border-slate-300 py-3 px-4 text-right whitespace-nowrap text-emerald-700" title="৳ {{ number_format($grandTotal, 2) }}">
-                            ৳ {{ number_format($grandTotal, 0) }}
+                        <td class="xlsx-cell xlsx-pin-bottom xlsx-grand text-right"
+                            data-ref="{{ $totalColLetter }}{{ $matrixDepots->count() + 1 }}" data-label="Grand Total" data-val="৳ {{ number_format($grandTotal, 2) }}">
+                            {{ number_format($grandTotal, 0) }}
                         </td>
                     </tr>
-                    <!-- Each head's share of the grand total -->
-                    <tr class="text-slate-500 italic text-[11px] border-t border-slate-100">
-                        <td class="py-2 px-4 whitespace-nowrap not-italic font-semibold">% of Grand Total</td>
+
+                    <!-- Share of grand total -->
+                    <tr class="xlsx-pctrow">
+                        <th class="xlsx-rownum">%</th>
+                        <td class="xlsx-depotcell font-semibold text-slate-500">% of Grand Total</td>
                         @foreach($matrixHeads as $head)
-                        <td class="py-2 px-4 text-right whitespace-nowrap">
+                        <td class="text-right whitespace-nowrap text-slate-500 italic">
                             {{ $grandTotal > 0 ? number_format(($headTotals[$head->id] / $grandTotal) * 100, 1) . '%' : '—' }}
                         </td>
                         @endforeach
-                        <td class="py-2 px-4 text-right whitespace-nowrap border-l border-slate-200">{{ $grandTotal > 0 ? '100%' : '—' }}</td>
+                        <td class="text-right whitespace-nowrap text-slate-500 italic font-bold">{{ $grandTotal > 0 ? '100%' : '—' }}</td>
                     </tr>
                     @endif
                 </tbody>
@@ -351,9 +413,250 @@
 
 </div>
 
+@push('styles')
+<style>
+    /* ===== Excel-style spreadsheet matrix ===== */
+    .xlsx-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.4rem 0.7rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #cbd5e1;
+        font-size: 11px;
+    }
+    .xlsx-namebox {
+        min-width: 58px;
+        text-align: center;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        border-radius: 0.375rem;
+        padding: 0.2rem 0.45rem;
+        font-weight: 800;
+        color: #0e3a8c;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+    }
+    .xlsx-fx {
+        font-style: italic;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-weight: 700;
+        color: #64748b;
+        padding-right: 0.55rem;
+        border-right: 1px solid #cbd5e1;
+    }
+    .xlsx-formula-text { color: #0f172a; font-weight: 600; flex: 1; min-width: 0; }
+    .xlsx-bar-value { font-weight: 800; color: #0e3a8c; font-variant-numeric: tabular-nums; }
+
+    .xlsx-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: max-content;
+        min-width: 100%;
+        font-size: 11px;
+    }
+    .xlsx-table th, .xlsx-table td {
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.55rem 0.85rem;
+        white-space: nowrap;
+        background: #fff;
+    }
+    /* Column-letter strip */
+    .xlsx-letter {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #f1f5f9;
+        color: #64748b;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 700;
+        font-size: 10px;
+        text-align: center;
+        height: 26px;
+        padding: 0.2rem 0.85rem;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    .xlsx-letter-total { color: #0e3a8c; background: #e8eefc; }
+    .xlsx-corner-top {
+        position: sticky;
+        top: 0;
+        left: 0;
+        z-index: 40;
+        background: #334155;
+        color: #94a3b8;
+        text-align: center;
+        width: 36px;
+        min-width: 36px;
+        height: 26px;
+        padding: 0 !important;
+        border-right: 2px solid #cbd5e1 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    /* Column headers */
+    .xlsx-head {
+        position: sticky;
+        top: 26px;
+        z-index: 20;
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 10px;
+        min-width: 115px;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    .xlsx-head-total { background: #e8eefc; color: #0e3a8c; border-left: 2px solid #cbd5e1; }
+    .xlsx-corner-left {
+        left: 36px;
+        z-index: 30;
+        text-align: left;
+        min-width: 170px;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 11px;
+        border-right: 2px solid #cbd5e1 !important;
+    }
+    /* Row-number gutter + depot column */
+    .xlsx-rownum {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: #f1f5f9;
+        color: #64748b;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 700;
+        font-size: 10px;
+        text-align: center;
+        width: 36px;
+        min-width: 36px;
+        border-right: 2px solid #cbd5e1 !important;
+    }
+    .xlsx-depotcell {
+        position: sticky;
+        left: 36px;
+        z-index: 10;
+        background: #fff;
+        min-width: 170px;
+        border-right: 2px solid #cbd5e1 !important;
+    }
+    .xlsx-num { font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums; }
+    .xlsx-empty { color: #cbd5e1; text-align: center; }
+    .xlsx-rowtotal { font-weight: 800; color: #0e3a8c; background: #f8fafc; font-variant-numeric: tabular-nums; }
+
+    /* Pinned totals row */
+    .xlsx-totalrow th, .xlsx-totalrow td {
+        border-top: 2px solid #94a3b8;
+        background: #eef2f7;
+        font-weight: 800;
+        color: #0f172a;
+        font-variant-numeric: tabular-nums;
+    }
+    .xlsx-pin-bottom { position: sticky; bottom: 0; z-index: 20; }
+    .xlsx-pin-bottom-left { position: sticky; bottom: 0; left: 0; z-index: 40; }
+    .xlsx-pin-bottom-depot { position: sticky; bottom: 0; left: 36px; z-index: 30; }
+    .xlsx-grand { color: #047857 !important; font-weight: 900; }
+
+    /* % of grand total row */
+    .xlsx-pctrow th, .xlsx-pctrow td {
+        background: #fbfcfe;
+        color: #94a3b8;
+        font-size: 10px;
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
+    }
+    .xlsx-pctrow .xlsx-rownum { background: #f8fafc; }
+
+    /* Crosshair hover: cell + row + column highlight */
+    .xlsx-table td.x-hot, .xlsx-table th.x-hot {
+        background: #dbeafe !important;
+        box-shadow: inset 0 0 0 1.5px #2266ef;
+        position: relative;
+    }
+    .xlsx-table tr.x-rowh td, .xlsx-table tr.x-rowh th { background-color: #f4f8ff; }
+    .xlsx-table tr.x-rowh td.xlsx-depotcell, .xlsx-table tr.x-rowh th.xlsx-rownum { background-color: #eef4ff; }
+    .xlsx-table td.x-colh, .xlsx-table th.x-colh { background-color: #f4f8ff !important; }
+    .xlsx-table td.x-colh.x-hot, .xlsx-table tr.x-rowh td.x-hot { background: #dbeafe !important; }
+</style>
+@endpush
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // ===== Excel-style crosshair hover + formula bar =====
+        const sheet = document.getElementById('xlsxMatrix');
+        if (sheet) {
+            const refBox = document.getElementById('xlsxCellRef');
+            const formulaText = document.getElementById('xlsxFormulaText');
+            const formulaValue = document.getElementById('xlsxFormulaValue');
+            const defaultRef = refBox.textContent;
+            const defaultText = formulaText.textContent;
+            const defaultValue = formulaValue.textContent;
+
+            let lastRow = null, lastColIndex = -1, lastCells = [];
+
+            const clearCross = function () {
+                lastCells.forEach(c => c.classList.remove('x-hot', 'x-colh'));
+                if (lastRow) lastRow.classList.remove('x-rowh');
+                lastCells = [];
+                lastRow = null;
+                lastColIndex = -1;
+            };
+
+            const showFormula = function (cell) {
+                if (cell && cell.dataset.ref) {
+                    refBox.textContent = cell.dataset.ref;
+                    formulaText.textContent = cell.dataset.label || '';
+                    formulaValue.textContent = cell.dataset.val || '';
+                } else {
+                    refBox.textContent = defaultRef;
+                    formulaText.textContent = defaultText;
+                    formulaValue.textContent = defaultValue;
+                }
+            };
+
+            sheet.addEventListener('mouseover', function (e) {
+                const cell = e.target.closest('td, th');
+                // Only body cells get the selection ring. Hovering the letter
+                // strip, column headers, or leaving the sheet entirely resets
+                // the crosshair — otherwise the ring stays stuck on the last
+                // cell (e.g. a column header) after the mouse moves away.
+                if (!cell || !cell.closest('tbody')) {
+                    clearCross();
+                    showFormula(null);
+                    return;
+                }
+
+                const rowIndex = cell.parentElement.rowIndex;
+                const colIndex = cell.cellIndex;
+                // Same cell as before? nothing to redo.
+                if (lastRow && lastColIndex === colIndex && lastRow.rowIndex === rowIndex) return;
+
+                clearCross();
+
+                // highlight the cell, its whole row, and its whole column
+                cell.classList.add('x-hot');
+                lastRow = cell.parentElement;
+                lastRow.classList.add('x-rowh');
+                lastColIndex = colIndex;
+                Array.from(sheet.rows).forEach(tr => {
+                    const c = tr.cells[colIndex];
+                    if (c && c !== cell) {
+                        c.classList.add('x-colh');
+                        lastCells.push(c);
+                    }
+                });
+                lastCells.push(cell);
+                showFormula(cell);
+            });
+
+            sheet.addEventListener('mouseleave', function () {
+                clearCross();
+                showFormula(null);
+            });
+        }
+
         const form = document.getElementById('matrixFilterForm');
         if (!form) return;
 
