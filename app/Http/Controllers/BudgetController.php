@@ -123,6 +123,29 @@ class BudgetController extends Controller
         $totalVariance = $totalBudget - $totalActualExpense;
         $overallPercentage = $totalBudget > 0 ? round(($totalActualExpense / $totalBudget) * 100, 1) : 0;
 
+        // ===== Overview analytics (charts at the bottom of the page) =====
+        // Depot share: actual spend per depot, honoring the matrix depot filter.
+        $chartDepotLabels = $varianceTable->sortByDesc('expense')->take(8)->pluck('depot.name')->values();
+        $chartDepotData = $varianceTable->sortByDesc('expense')->take(8)->pluck('expense')->map(fn ($v) => (float) $v)->values();
+
+        // Top expense heads (same slice the matrix columns use).
+        $chartHeadPairs = collect($headTotals)->sortDesc()->take(8);
+        $chartHeadLabels = $chartHeadPairs->keys()
+            ->map(fn ($id) => optional($matrixHeads->firstWhere('id', $id))->name ?? 'Other')
+            ->values();
+        $chartHeadData = $chartHeadPairs->values()->map(fn ($v) => (float) $v);
+
+        // Month-by-month spend trend for the selected year (depot filter respected).
+        $trendQuery = Expense::selectRaw('month, SUM(amount) as total')
+            ->where('year', $year)
+            ->groupBy('month');
+        if (!empty($selectedDepotIds)) {
+            $trendQuery->whereIn('depot_id', $selectedDepotIds);
+        }
+        $trendByMonth = $trendQuery->pluck('total', 'month');
+        $chartTrendData = collect(['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'])
+            ->map(fn ($m) => (float) ($trendByMonth[$m] ?? 0));
+
         return view('budgets.index', compact(
             'depots',
             'businesses',
@@ -139,7 +162,12 @@ class BudgetController extends Controller
             'totalVariance',
             'overallPercentage',
             'year',
-            'month'
+            'month',
+            'chartDepotLabels',
+            'chartDepotData',
+            'chartHeadLabels',
+            'chartHeadData',
+            'chartTrendData'
         ));
     }
 

@@ -53,97 +53,30 @@
         </div>
     </div>
 
-    <!-- Set / Update Budget Allocation Drawer/Form (For HO Finance Admins) -->
-    @if(auth()->user()->isHeadOffice())
-    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
-        <div class="flex items-center space-x-2 mb-4">
-            <i class="fa-solid fa-pen-to-square text-emerald-600 text-sm"></i>
-            <h3 class="text-sm font-bold text-slate-900">Configure Monthly / Annual Budget Allocation</h3>
-        </div>
-
-        <form action="{{ route('budgets.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            @csrf
-            <div>
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Depot <span class="text-rose-500">*</span></label>
-                <select name="depot_id" required class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    @foreach($depots as $depot)
-                        <option value="{{ $depot->id }}">{{ $depot->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Year <span class="text-rose-500">*</span></label>
-                <select name="year" required data-ts-grid="1" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    @php $yearOptions = collect(range(now()->year - 4, now()->year + 1))->push((int) $year)->unique()->sort()->values(); @endphp
-                    @foreach($yearOptions as $y)
-                        <option value="{{ $y }}" {{ (int) $year === $y ? 'selected' : '' }}>{{ $y }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Month <span class="text-rose-500">*</span></label>
-                <select name="month" required data-ts-grid="1" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    @foreach(['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as $m)
-                        <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>{{ $m }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Business Unit (Optional)</label>
-                <select name="business_id" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option value="">All Business Units</option>
-                    @foreach($businesses as $bu)
-                        <option value="{{ $bu->id }}">{{ $bu->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Amount (BDT) <span class="text-rose-500">*</span></label>
-                <input type="number" step="0.01" min="0" name="amount" placeholder="e.g. 1500000" required class="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-            </div>
-
-            <div class="flex items-end">
-                <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                    <i class="fa-solid fa-floppy-disk mr-1"></i> Save Budget
-                </button>
-            </div>
-        </form>
-    </div>
-    @endif
-
-    <!-- Matrix Controls (directly above the table it drives) -->
+    <!-- ===== Budget Console: matrix filters + allocation, combined ===== -->
     @php
         $quickThis = $month === strtoupper(now()->format('M'));
         $quickLast = $month === strtoupper(now()->subMonthNoOverflow()->format('M'));
         $quickAll = $month === 'ALL';
+        $allocMonth = $month === 'ALL' ? strtoupper(now()->format('M')) : $month;
     @endphp
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div class="bg-gradient-to-r from-yamaha-600 to-cyan-500 h-1"></div>
-        <div class="p-4">
-            <div class="flex flex-wrap items-center gap-3 mb-3">
+        <div class="p-4 sm:p-5">
+
+            <!-- Title row -->
+            <div class="flex flex-wrap items-center gap-3 mb-4">
                 <div class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-yamaha-600 to-cyan-500 text-white flex items-center justify-center shadow-md shadow-yamaha-600/30">
                         <i class="fa-solid fa-sliders text-sm"></i>
                     </div>
                     <div>
-                        <p class="text-[11px] font-black text-slate-900 uppercase tracking-[0.14em] leading-none">Matrix Controls</p>
-                        <p class="text-[10px] text-slate-400 mt-1 leading-none">Depots = rows &bull; Expense heads = columns</p>
+                        <p class="text-[11px] font-black text-slate-900 uppercase tracking-[0.14em] leading-none">Budget Console</p>
+                        <p class="text-[10px] text-slate-400 mt-1 leading-none">Shape the matrix &amp; allocate budgets — one period for everything</p>
                     </div>
                 </div>
 
-                <!-- Quick period pills -->
-                <div class="flex items-center gap-1 p-1 bg-slate-100 rounded-xl" id="quickPeriodPills">
-                    <button type="button" data-month="{{ strtoupper(now()->format('M')) }}" class="quick-pill px-3 py-1.5 rounded-lg text-[11px] font-bold transition {{ $quickThis ? 'bg-white text-yamaha-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">This Month</button>
-                    <button type="button" data-month="{{ strtoupper(now()->subMonthNoOverflow()->format('M')) }}" class="quick-pill px-3 py-1.5 rounded-lg text-[11px] font-bold transition {{ $quickLast ? 'bg-white text-yamaha-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">Last Month</button>
-                    <button type="button" data-month="ALL" class="quick-pill px-3 py-1.5 rounded-lg text-[11px] font-bold transition {{ $quickAll ? 'bg-white text-yamaha-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">Entire Year</button>
-                </div>
-
                 <div class="ml-auto flex items-center gap-2">
-                    <!-- Live scope summary -->
                     <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 rounded-xl px-3 py-1.5">
                         <i class="fa-solid fa-eye text-[10px] text-yamaha-600"></i>
                         Showing {{ $matrixDepots->count() }} Depots × {{ $matrixHeads->count() }} Heads
@@ -156,43 +89,109 @@
                 </div>
             </div>
 
-            <form action="{{ route('budgets.index') }}" method="GET" id="matrixFilterForm" class="flex flex-wrap items-center gap-2">
-                <select name="year" data-ts-grid="1" class="w-28 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    @php $yearFilterOptions = collect([now()->year, now()->year - 1, now()->year - 2])->push((int) $year)->unique()->sortDesc()->values(); @endphp
-                    @foreach($yearFilterOptions as $y)
-                        <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>FY {{ $y }}</option>
-                    @endforeach
-                </select>
+            <!-- ① Shared period row -->
+            <form action="{{ route('budgets.index') }}" method="GET" id="matrixFilterForm">
+                <div class="flex flex-wrap items-end gap-3 pb-4 mb-4 border-b border-slate-100">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-[0.12em] mb-1">Period — Year</label>
+                        <select name="year" data-ts-grid="1" class="w-28 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            @php $yearFilterOptions = collect([now()->year, now()->year - 1, now()->year - 2])->push((int) $year)->unique()->sortDesc()->values(); @endphp
+                            @foreach($yearFilterOptions as $y)
+                                <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>FY {{ $y }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-[0.12em] mb-1">Period — Month</label>
+                        <select name="month" data-ts-grid="1" class="w-40 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="ALL" {{ $month == 'ALL' ? 'selected' : '' }}>Entire Year (ALL)</option>
+                            @foreach(['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as $m)
+                                <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>{{ $m }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <select name="month" data-ts-grid="1" class="w-40 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option value="ALL" {{ $month == 'ALL' ? 'selected' : '' }}>Entire Year (ALL)</option>
-                    @foreach(['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as $m)
-                        <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>{{ $m }}</option>
-                    @endforeach
-                </select>
+                    <!-- Quick period pills -->
+                    <div class="flex items-center gap-1 p-1 bg-slate-100 rounded-xl" id="quickPeriodPills">
+                        <button type="button" data-month="{{ strtoupper(now()->format('M')) }}" class="quick-pill px-3 py-1.5 rounded-lg text-[11px] font-bold transition {{ $quickThis ? 'bg-white text-yamaha-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">This Month</button>
+                        <button type="button" data-month="{{ strtoupper(now()->subMonthNoOverflow()->format('M')) }}" class="quick-pill px-3 py-1.5 rounded-lg text-[11px] font-bold transition {{ $quickLast ? 'bg-white text-yamaha-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">Last Month</button>
+                        <button type="button" data-month="ALL" class="quick-pill px-3 py-1.5 rounded-lg text-[11px] font-bold transition {{ $quickAll ? 'bg-white text-yamaha-700 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">Entire Year</button>
+                    </div>
 
-                <select name="depot_ids[]" multiple class="flex-1 min-w-[190px] max-w-[260px] text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option value="">All Depots (rows)</option>
-                    @foreach($depots as $depot)
-                        <option value="{{ $depot->id }}" @selected(in_array($depot->id, $selectedDepotIds))>{{ $depot->name }}</option>
-                    @endforeach
-                </select>
+                    <p class="ml-auto text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        Applies instantly to matrix <span class="text-slate-300">&amp;</span> allocation
+                    </p>
+                </div>
 
-                <select name="expense_head_ids[]" multiple class="flex-1 min-w-[230px] max-w-[340px] text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option value="">All Expense Heads (columns)</option>
-                    @foreach($expenseHeads as $head)
-                        <option value="{{ $head->id }}" @selected(in_array($head->id, $selectedHeadIds))>{{ $head->name }}</option>
-                    @endforeach
-                </select>
+                <!-- ② Shape the matrix -->
+                <div>
+                    <p class="text-[10px] font-black text-yamaha-700 uppercase tracking-[0.14em] mb-2">
+                        <i class="fa-solid fa-table-cells mr-1"></i> 1 · Shape the matrix
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select name="depot_ids[]" multiple class="flex-1 min-w-[190px] max-w-[340px] text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">All Depots (rows)</option>
+                            @foreach($depots as $depot)
+                                <option value="{{ $depot->id }}" @selected(in_array($depot->id, $selectedDepotIds))>{{ $depot->name }}</option>
+                            @endforeach
+                        </select>
 
-                <button type="submit" id="matrixApplyBtn" class="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shrink-0">
-                    <i class="fa-solid fa-magnifying-glass mr-1"></i> Apply
-                </button>
+                        <select name="expense_head_ids[]" multiple class="flex-1 min-w-[230px] max-w-[420px] text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">All Expense Heads (columns)</option>
+                            @foreach($expenseHeads as $head)
+                                <option value="{{ $head->id }}" @selected(in_array($head->id, $selectedHeadIds))>{{ $head->name }}</option>
+                            @endforeach
+                        </select>
+
+                        <button type="submit" id="matrixApplyBtn" class="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shrink-0">
+                            <i class="fa-solid fa-magnifying-glass mr-1"></i> Apply
+                        </button>
+                    </div>
+                </div>
             </form>
-            <p class="mt-2 text-[11px] text-slate-400 flex items-center gap-1.5">
-                <i class="fa-solid fa-lightbulb text-amber-400"></i>
-                Year &amp; month apply instantly — pick specific depots or expense heads (or remove their chips) and hit Apply to reshape the matrix.
-            </p>
+
+            <!-- ③ Allocate budget (same period as above — auto-synced) -->
+            @if(auth()->user()->isHeadOffice())
+            <div class="pt-4 mt-4 border-t border-slate-100">
+                <p class="text-[10px] font-black text-emerald-700 uppercase tracking-[0.14em] mb-2">
+                    <i class="fa-solid fa-pen-to-square mr-1"></i> 2 · Allocate budget for this period
+                </p>
+                <form action="{{ route('budgets.store') }}" method="POST" id="allocateForm" class="flex flex-wrap items-end gap-2">
+                    @csrf
+                    <input type="hidden" name="year" value="{{ $year }}">
+                    <input type="hidden" name="month" value="{{ $allocMonth }}">
+
+                    <div class="w-44">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Depot <span class="text-rose-500">*</span></label>
+                        <select name="depot_id" required class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            @foreach($depots as $depot)
+                                <option value="{{ $depot->id }}">{{ $depot->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="w-48">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Business Unit <span class="text-slate-300">(optional)</span></label>
+                        <select name="business_id" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">All Business Units</option>
+                            @foreach($businesses as $bu)
+                                <option value="{{ $bu->id }}">{{ $bu->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="w-40">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount (BDT) <span class="text-rose-500">*</span></label>
+                        <input type="number" step="0.01" min="0" name="amount" placeholder="e.g. 1500000" required class="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition" title="Year & month follow the period above (Entire Year view allocates to the current month)">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Save for {{ $allocMonth }} {{ $year }}
+                    </button>
+                </form>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -430,6 +429,48 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ===== Expense Overview & Analytics (charts) ===== -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                    <i class="fa-solid fa-chart-pie text-yamaha-600 mr-2"></i> Expense Overview &amp; Analytics
+                </h3>
+                <p class="text-xs text-slate-400">Whole-year picture at a glance — who spends, on what, and when (Period: {{ $month }} {{ $year }})</p>
+            </div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em]">Auto-updates with filters</span>
+        </div>
+
+        <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Donut: depot share -->
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/40">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-chart-pie text-yamaha-600 mr-1"></i> Depot-wise Expense Share
+                </h4>
+                <p class="text-[11px] text-slate-400 mb-2">Top 8 depots — bigger slice = heavier spender</p>
+                <div id="chartDepotShare" class="min-h-[300px]"></div>
+            </div>
+
+            <!-- Bar: top expense heads -->
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/40">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-chart-simple text-cyan-600 mr-1"></i> Top Expense Heads
+                </h4>
+                <p class="text-[11px] text-slate-400 mb-2">Where the money actually goes</p>
+                <div id="chartHeadBars" class="min-h-[300px]"></div>
+            </div>
+
+            <!-- Area: monthly trend -->
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/40 lg:col-span-2">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-chart-line text-indigo-600 mr-1"></i> Monthly Expense Trend — {{ $year }}
+                </h4>
+                <p class="text-[11px] text-slate-400 mb-2">Seasonal pattern across the whole year (respects depot filter)</p>
+                <div id="chartTrend" class="min-h-[280px]"></div>
+            </div>
         </div>
     </div>
 
@@ -726,8 +767,10 @@
             // k=2… heads — so a column's cells all share one index.
             const cellAt = (tr, col) => tr.cells[col];
             const headerRow = Array.from(sheet.rows).find(r => r.querySelector('.xlsx-head-total'));
-            const headCount = headerRow.cells.length - 2; // corner + heads + total
-            const totalColIndex = 2 + headCount;          // 0 = gutter, 1 = depot, heads start at 2
+            // The row-total column is simply the last cell of every row
+            // (gutter, depot, heads…, total). Deriving it from a head count
+            // silently broke when the header row gained its gutter cell.
+            const totalColIndex = headerRow.cells.length - 1;
 
             const recomputeTotals = function () {
                 const bodyRows = Array.from(sheet.tBodies[0].rows);
@@ -828,6 +871,58 @@
             url.searchParams.set('month', monthSel.value);
             window.location.href = url.toString();
         });
+
+        // ===== Expense Overview charts =====
+        if (typeof ApexCharts !== 'undefined') {
+            const yamahaPalette = ['#1149B0', '#00B4E6', '#4D8DF4', '#06B6D4', '#818CF8', '#38BDF8', '#0E3A8C', '#67E8F9'];
+            const fmtM = v => '৳ ' + (v / 1000000).toFixed(2) + ' M';
+
+            // Donut: depot-wise share
+            const depotShare = new ApexCharts(document.querySelector('#chartDepotShare'), {
+                series: @json($chartDepotData),
+                labels: @json($chartDepotLabels),
+                chart: { type: 'donut', height: 300, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+                colors: yamahaPalette,
+                legend: { position: 'bottom', fontSize: '11px', fontWeight: 600 },
+                dataLabels: { enabled: false },
+                tooltip: { y: { formatter: fmtM } },
+                plotOptions: { pie: { donut: { size: '62%', labels: {
+                    show: true,
+                    name: { fontSize: '11px', color: '#64748b' },
+                    value: { fontSize: '15px', fontWeight: 800, color: '#0e3a8c', formatter: fmtM },
+                    total: { show: true, label: 'Total', fontSize: '11px', fontWeight: 700, color: '#64748b', formatter: w => fmtM(w.globals.seriesTotals.reduce((a, b) => a + b, 0)) }
+                } } } }
+            });
+            depotShare.render();
+
+            // Horizontal bars: top expense heads
+            const headBars = new ApexCharts(document.querySelector('#chartHeadBars'), {
+                series: [{ name: 'Spend (BDT)', data: @json($chartHeadData) }],
+                chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+                colors: yamahaPalette,
+                plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: '62%', distributed: true } },
+                dataLabels: { enabled: false },
+                legend: { show: false },
+                xaxis: { categories: @json($chartHeadLabels), labels: { formatter: v => (v / 1000000).toFixed(1) + 'M', style: { fontSize: '10px' } } },
+                yaxis: { labels: { style: { fontSize: '10px', fontWeight: 600 } } },
+                tooltip: { y: { formatter: fmtM } }
+            });
+            headBars.render();
+
+            // Area: monthly trend
+            const trend = new ApexCharts(document.querySelector('#chartTrend'), {
+                series: [{ name: 'Monthly spend (BDT)', data: @json($chartTrendData) }],
+                chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+                colors: ['#2266EF'],
+                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
+                stroke: { curve: 'smooth', width: 2.5 },
+                dataLabels: { enabled: false },
+                xaxis: { categories: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'], labels: { style: { fontSize: '10px', fontWeight: 600 } } },
+                yaxis: { labels: { formatter: v => (v / 1000000).toFixed(1) + 'M', style: { fontSize: '10px' } } },
+                tooltip: { y: { formatter: fmtM } }
+            });
+            trend.render();
+        }
     });
 </script>
 @endpush
